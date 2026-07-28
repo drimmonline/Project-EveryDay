@@ -13,9 +13,24 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is working!");
 });
+const allowedOrigins = [
+  "https://project-every-day.vercel.app",
+  "https://project-every-day.vercel.app/",
+  "http://localhost:3000",
+  "http://127.0.0.1:5500", // เผื่อรัน Live Server ในเครื่อง
+];
+
 app.use(
   cors({
-    origin: "https://project-every-day.vercel.app/", // หรือใส่ "*" ช่วงทดสอบ
+    origin: function (origin, callback) {
+      // !origin ช่วยให้ tools อย่าง Postman หรือ cURL ยิงทดสอบได้
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
   }),
 );
 app.use("/api/tasks", require("./routes/taskRoutes"));
