@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/tasks", require("./routes/taskRoutes"));
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
 // ให้ Server เริ่มทำงานและเปิด Port ก่อนเลย
 app.listen(PORT, "0.0.0.0", () => {
