@@ -1,5 +1,8 @@
 const Task = require("../models/Task");
 
+// Helper function สำหรับดึง io instance
+const getIO = (req) => req.app.get("io");
+
 // @desc    ดึงรายการงานทั้งหมด (รองรับ Pagination สำหรับ Excel View)
 // @route   GET /api/tasks
 exports.getTasks = async (req, res) => {
@@ -70,6 +73,11 @@ exports.getTaskStats = async (req, res) => {
 exports.createTask = async (req, res) => {
   try {
     const task = await Task.create(req.body);
+
+    // 📢 กระจาย Event แจ้งเตือนทุก Client ว่ามี Task ใหม่สร้างขึ้น
+    const io = getIO(req);
+    if (io) io.emit("task:created", task);
+
     res.status(201).json({ success: true, data: task });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -90,6 +98,10 @@ exports.updateTask = async (req, res) => {
         .status(404)
         .json({ success: false, message: "ไม่พบงานที่ต้องการแก้ไข" });
     }
+
+    // 📢 กระจาย Event แจ้งเตือนทุก Client ว่าข้อมูล Task อัปเดตแล้ว
+    const io = getIO(req);
+    if (io) io.emit("task:updated", task);
 
     res.status(200).json({ success: true, data: task });
   } catch (error) {
@@ -114,6 +126,10 @@ exports.updateTaskStatus = async (req, res) => {
         .json({ success: false, message: "ไม่พบงานที่ต้องการเปลี่ยนสถานะ" });
     }
 
+    // 📢 กระจาย Event แจ้งเตือนทุก Client ว่ามีการ Drag & Drop ย้ายสถานะ Task
+    const io = getIO(req);
+    if (io) io.emit("task:updated", task);
+
     res.status(200).json({ success: true, data: task });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -132,7 +148,13 @@ exports.deleteTask = async (req, res) => {
         .json({ success: false, message: "ไม่พบงานที่ต้องการลบ" });
     }
 
-    res.status(200).json({ success: true, message: "ลบงานสำเร็จ" });
+    // 📢 กระจาย Event แจ้งเตือนทุก Client ว่ามี Task โดนลบไปแล้ว (ส่ง id ไป)
+    const io = getIO(req);
+    if (io) io.emit("task:deleted", req.params.id);
+
+    res
+      .status(200)
+      .json({ success: true, message: "ลบงานสำเร็จ", id: req.params.id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

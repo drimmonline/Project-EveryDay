@@ -1,4 +1,6 @@
 const API_BASE = "https://kanban-board-nj04.onrender.com/api/tasks";
+// ดึง Root Origin สำหรับเชื่อมต่อ WebSocket (เช่น https://kanban-board-nj04.onrender.com)
+const SOCKET_URL = "https://kanban-board-nj04.onrender.com";
 
 let tasks = [];
 
@@ -7,6 +9,72 @@ let pageSize = 10;
 
 let statusChartInstance = null;
 let priorityChartInstance = null;
+
+// ================= SOCKET.IO INITIALIZATION =================
+// 1. สร้างการเชื่อมต่อ Socket.io
+const socket = io(SOCKET_URL);
+
+socket.on("connect", () => {
+  console.log("⚡ Real-time Socket Connected:", socket.id);
+});
+
+// 2. ดักฟัง Event เมื่อมีคนสร้าง Task ใหม่
+socket.on("task:created", (t) => {
+  console.log("📢 Event: Task Created", t);
+  const newTask = {
+    id: t._id,
+    title: t.title,
+    desc: t.description,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
+  };
+
+  // ตรวจสอบว่ามี Task นี้ใน Array หรือยังเพื่อป้องกัน Duplicate
+  if (!tasks.some((item) => item.id === newTask.id)) {
+    tasks.unshift(newTask);
+    refreshUI();
+  }
+});
+
+// 3. ดักฟัง Event เมื่อมีคนอัปเดต Task (รวมถึงการลากย้าย Drag & Drop)
+socket.on("task:updated", (t) => {
+  console.log("📢 Event: Task Updated", t);
+  const index = tasks.findIndex((item) => item.id === t._id);
+  const updatedTask = {
+    id: t._id,
+    title: t.title,
+    desc: t.description,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
+  };
+
+  if (index !== -1) {
+    tasks[index] = updatedTask;
+  } else {
+    tasks.unshift(updatedTask);
+  }
+  refreshUI();
+});
+
+// 4. ดักฟัง Event เมื่อมีคนลบ Task
+socket.on("task:deleted", (deletedId) => {
+  console.log("📢 Event: Task Deleted", deletedId);
+  tasks = tasks.filter((item) => item.id !== deletedId);
+  refreshUI();
+});
+
+// ฟังก์ชันสำหรับรีเฟรชหน้าจอทั้งหมดเมื่อมีการเปลี่ยนแปลงข้อมูล Real-time
+function refreshUI() {
+  renderKanban();
+  if (document.getElementById("excel-view")?.classList.contains("active")) {
+    renderExcelTable();
+  }
+  if (document.getElementById("dashboard-view")?.classList.contains("active")) {
+    updateDashboard();
+  }
+}
 
 // ================= API HELPERS =================
 async function fetchAllTasks() {
@@ -104,8 +172,11 @@ function renderKanban() {
   const columns = ["todo", "in-progress", "done"];
   columns.forEach((col) => {
     const container = document.getElementById(`cards-${col}`);
+    if (!container) return;
+
     const colTasks = tasks.filter((t) => t.status === col);
-    document.getElementById(`badge-${col}`).innerText = colTasks.length;
+    const badge = document.getElementById(`badge-${col}`);
+    if (badge) badge.innerText = colTasks.length;
 
     container.innerHTML = colTasks
       .map(
@@ -133,19 +204,28 @@ function renderKanban() {
 function allowDrop(ev) {
   ev.preventDefault();
 }
+
 function drag(ev, id) {
   ev.dataTransfer.setData("text/plain", id);
 }
+
 async function drop(ev, targetStatus) {
   ev.preventDefault();
   const id = ev.dataTransfer.getData("text/plain");
   const task = tasks.find((t) => t.id === id);
+
   if (task && task.status !== targetStatus) {
-    const result = await updateTaskStatusAPI(id, targetStatus);
-    if (result.success) {
-      task.status = targetStatus;
-    }
+    // Optimistic UI Update (ย้าย UI ทันทีไม่ต้องรอ Network)
+    task.status = targetStatus;
     renderKanban();
+
+    // ยิง API (Backend จะปล่อย socket event `task:updated` กลับมาให้เครื่องอื่นๆ เอง)
+    const result = await updateTaskStatusAPI(id, targetStatus);
+    if (!result.success) {
+      // หากยิงไม่ผ่าน ค่อยสั่ง Fetch ดึงข้อมูลคืน
+      await fetchAllTasks();
+      refreshUI();
+    }
   }
 }
 
@@ -184,66 +264,41 @@ async function handleFormSubmit(e) {
   const priority = document.getElementById("taskPriority").value;
   const dueDate = document.getElementById("taskDueDate").value;
 
-  if (id) {
-    const result = await updateTaskAPI(id, {
-      title,
-      desc,
-      status,
-      priority,
-      dueDate,
-    });
-    if (result.success) {
-      const task = tasks.find((t) => t.id === id);
-      Object.assign(task, { title, desc, status, priority, dueDate });
-    }
-  } else {
-    const result = await createTaskAPI({
-      title,
-      desc,
-      status,
-      priority,
-      dueDate,
-    });
-    if (result.success) {
-      const t = result.data;
-      tasks.unshift({
-        id: t._id,
-        title: t.title,
-        desc: t.description,
-        status: t.status,
-        priority: t.priority,
-        dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
-      });
-    }
-  }
-
   closeModal();
-  renderKanban();
-  if (document.getElementById("excel-view").classList.contains("active"))
-    renderExcelTable();
-  if (document.getElementById("dashboard-view").classList.contains("active"))
-    updateDashboard();
+
+  if (id) {
+    await updateTaskAPI(id, {
+      title,
+      desc,
+      status,
+      priority,
+      dueDate,
+    });
+  } else {
+    await createTaskAPI({
+      title,
+      desc,
+      status,
+      priority,
+      dueDate,
+    });
+  }
+  // ไม่จำเป็นต้อง Render ซ้ำที่นี่ เพราะ Socket Event (`task:created` หรือ `task:updated`)
+  // จาก Backend จะส่งกลับมา trigger ให้ refreshUI() ทำงานอัตโนมัติครับ
 }
 
 async function deleteTask(id) {
   if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?")) {
-    const result = await deleteTaskAPI(id);
-    if (result.success) {
-      tasks = tasks.filter((t) => t.id !== id);
-      renderKanban();
-      if (document.getElementById("excel-view").classList.contains("active"))
-        renderExcelTable();
-      if (
-        document.getElementById("dashboard-view").classList.contains("active")
-      )
-        updateDashboard();
-    }
+    await deleteTaskAPI(id);
+    // Socket Event (`task:deleted`) จะเคลียร์ array และ refreshUI() ให้อัตโนมัติเช่นกันครับ
   }
 }
 
 // ================= 4. EXCEL TABLE & PAGINATION =================
 function renderExcelTable() {
   const tbody = document.getElementById("excel-table-body");
+  if (!tbody) return;
+
   const totalItems = tasks.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
@@ -282,6 +337,8 @@ function renderExcelTable() {
 
 function renderPaginationControls(totalPages) {
   const container = document.getElementById("pagination-controls");
+  if (!container) return;
+
   let buttonsHTML = `
     <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>ก่อนหน้า</button>
   `;
@@ -329,42 +386,51 @@ function exportToCSV() {
 
 // ================= 5. DASHBOARD & CHARTS =================
 function initCharts() {
-  const ctxStatus = document.getElementById("statusChart").getContext("2d");
-  statusChartInstance = new Chart(ctxStatus, {
-    type: "doughnut",
-    data: {
-      labels: ["To Do", "In Progress", "Done"],
-      datasets: [
-        { data: [0, 0, 0], backgroundColor: ["#f59e0b", "#2563eb", "#10b981"] },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } },
-    },
-  });
+  const statusEl = document.getElementById("statusChart");
+  if (statusEl) {
+    const ctxStatus = statusEl.getContext("2d");
+    statusChartInstance = new Chart(ctxStatus, {
+      type: "doughnut",
+      data: {
+        labels: ["To Do", "In Progress", "Done"],
+        datasets: [
+          {
+            data: [0, 0, 0],
+            backgroundColor: ["#f59e0b", "#2563eb", "#10b981"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
 
-  const ctxPriority = document.getElementById("priorityChart").getContext("2d");
-  priorityChartInstance = new Chart(ctxPriority, {
-    type: "bar",
-    data: {
-      labels: ["Low", "Medium", "High"],
-      datasets: [
-        {
-          label: "จำนวนงาน",
-          data: [0, 0, 0],
-          backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-      plugins: { legend: { display: false } },
-    },
-  });
+  const priorityEl = document.getElementById("priorityChart");
+  if (priorityEl) {
+    const ctxPriority = priorityEl.getContext("2d");
+    priorityChartInstance = new Chart(ctxPriority, {
+      type: "bar",
+      data: {
+        labels: ["Low", "Medium", "High"],
+        datasets: [
+          {
+            label: "จำนวนงาน",
+            data: [0, 0, 0],
+            backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        plugins: { legend: { display: false } },
+      },
+    });
+  }
 }
 
 function updateDashboard() {
@@ -376,15 +442,22 @@ function updateDashboard() {
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const highCount = tasks.filter((t) => t.priority === "high").length;
 
-  document.getElementById("stat-total").innerText = total;
-  document.getElementById("stat-in-progress").innerText = inProgressCount;
-  document.getElementById("stat-done").innerText = doneCount;
-  document.getElementById("stat-high").innerText = highCount;
+  const elTotal = document.getElementById("stat-total");
+  const elProgress = document.getElementById("stat-in-progress");
+  const elDone = document.getElementById("stat-done");
+  const elHigh = document.getElementById("stat-high");
+
+  if (elTotal) elTotal.innerText = total;
+  if (elProgress) elProgress.innerText = inProgressCount;
+  if (elDone) elDone.innerText = doneCount;
+  if (elHigh) elHigh.innerText = highCount;
 
   const progress = total === 0 ? 0 : Math.round((doneCount / total) * 100);
   const progressBar = document.getElementById("overall-progress-bar");
-  progressBar.style.width = `${progress}%`;
-  progressBar.innerText = `${progress}%`;
+  if (progressBar) {
+    progressBar.style.width = `${progress}%`;
+    progressBar.innerText = `${progress}%`;
+  }
 
   if (statusChartInstance && priorityChartInstance) {
     statusChartInstance.data.datasets[0].data = [
@@ -406,6 +479,7 @@ function updateDashboard() {
 }
 
 function escapeHtml(str) {
+  if (!str) return "";
   return str.replace(
     /[&<>"']/g,
     (match) =>
