@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000/api/tasks";
+const API_BASE = "https://kanban-board-nj04.onrender.com/api/tasks";
 
 let tasks = [];
 
@@ -185,13 +185,25 @@ async function handleFormSubmit(e) {
   const dueDate = document.getElementById("taskDueDate").value;
 
   if (id) {
-    const result = await updateTaskAPI(id, { title, desc, status, priority, dueDate });
+    const result = await updateTaskAPI(id, {
+      title,
+      desc,
+      status,
+      priority,
+      dueDate,
+    });
     if (result.success) {
       const task = tasks.find((t) => t.id === id);
       Object.assign(task, { title, desc, status, priority, dueDate });
     }
   } else {
-    const result = await createTaskAPI({ title, desc, status, priority, dueDate });
+    const result = await createTaskAPI({
+      title,
+      desc,
+      status,
+      priority,
+      dueDate,
+    });
     if (result.success) {
       const t = result.data;
       tasks.unshift({
@@ -221,7 +233,9 @@ async function deleteTask(id) {
       renderKanban();
       if (document.getElementById("excel-view").classList.contains("active"))
         renderExcelTable();
-      if (document.getElementById("dashboard-view").classList.contains("active"))
+      if (
+        document.getElementById("dashboard-view").classList.contains("active")
+      )
         updateDashboard();
     }
   }
