@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kanban board App</title>
+
+    <!-- Chart.js สำหรับกราฟ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome สำหรับไอคอน -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- เชื่อมต่อไฟล์ CSS External -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Navbar -->
+      <header class="navbar">
+        <h1><i class="fa-solid fa-kanban"></i> Project Manager</h1>
+        <div class="nav-controls">
+          <div class="nav-tabs">
+            <button
+              class="tab-btn active"
+              onclick="switchTab('kanban-view', this)"
+            >
+              <i class="fa-solid fa-table-columns"></i> Kanban
+            </button>
+            <button class="tab-btn" onclick="switchTab('excel-view', this)">
+              <i class="fa-solid fa-file-excel"></i> Excel Log
+            </button>
+            <button class="tab-btn" onclick="switchTab('dashboard-view', this)">
+              <i class="fa-solid fa-chart-pie"></i> Dashboard
+            </button>
+          </div>
+          <button class="btn-add" onclick="openModal()">
+            <i class="fa-solid fa-plus"></i> เพิ่มงาน
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW 1: KANBAN BOARD -->
+      <main id="kanban-view" class="page-view active">
+        <div class="board">
+          <div class="column" id="todo">
+            <div class="column-header">
+              <span class="column-title">To Do</span>
+              <span class="badge" id="badge-todo">0</span>
+            </div>
+            <div
+              class="cards-container"
+              id="cards-todo"
+              ondragover="allowDrop(event)"
+              ondrop="drop(event, 'todo')"
+            ></div>
+          </div>
+
+          <div class="column" id="in-progress">
+            <div class="column-header">
+              <span class="column-title">In Progress</span>
+              <span class="badge" id="badge-in-progress">0</span>
+            </div>
+            <div
+              class="cards-container"
+              id="cards-in-progress"
+              ondragover="allowDrop(event)"
+              ondrop="drop(event, 'in-progress')"
+            ></div>
+          </div>
+
+          <div class="column" id="done">
+            <div class="column-header">
+              <span class="column-title">Done</span>
+              <span class="badge" id="badge-done">0</span>
+            </div>
+            <div
+              class="cards-container"
+              id="cards-done"
+              ondragover="allowDrop(event)"
+              ondrop="drop(event, 'done')"
+            ></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- VIEW 2: EXCEL / TABLE LOG -->
+      <main id="excel-view" class="page-view">
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div>
+              <label for="pageSize" style="font-size: 0.85rem; color: #64748b"
+                >แสดงผล:
+              </label>
+              <select
+                id="pageSize"
+                class="select-page-size"
+                onchange="changePageSize(this.value)"
+              >
+                <option value="5">5 รายการ/หน้า</option>
+                <option value="10" selected>10 รายการ/หน้า</option>
+                <option value="20">20 รายการ/หน้า</option>
+              </select>
+            </div>
+            <button class="btn-export" onclick="exportToCSV()">
+              <i class="fa-solid fa-file-csv"></i> ส่งออกเป็น Excel (.CSV)
+            </button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="excel-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่อหัวข้องาน</th>
+                  <th>รายละเอียด</th>
+                  <th>สถานะ</th>
+                  <th>ความสำคัญ</th>
+                  <th>กำหนดส่ง</th>
+                  <th>การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="excel-table-body">
+                <!-- ข้อมูลตารางจะแสดงที่นี่ -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="pagination-container">
+            <div class="pagination-info" id="pagination-info">
+              แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ
+            </div>
+            <div class="pagination-controls" id="pagination-controls"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- VIEW 3: DASHBOARD -->
+      <main id="dashboard-view" class="page-view">
+        <section class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-title">งานทั้งหมด</span
+            ><span class="stat-value" id="stat-total">0</span>
+          </div>
+          <div class="stat-card border-blue">
+            <span class="stat-title">กำลังทำ (In Progress)</span
+            ><span class="stat-value text-blue" id="stat-in-progress">0</span>
+          </div>
+          <div class="stat-card border-green">
+            <span class="stat-title">เสร็จแล้ว (Done)</span
+            ><span class="stat-value text-green" id="stat-done">0</span>
+          </div>
+          <div class="stat-card border-red">
+            <span class="stat-title">ด่วนมาก (High Priority)</span
+            ><span class="stat-value text-red" id="stat-high">0</span>
+          </div>
+        </section>
+
+        <section class="progress-section">
+          <h3>ความคืบหน้าภาพรวม (Overall Progress)</h3>
+          <div class="progress-bar-container">
+            <div
+              class="progress-bar"
+              id="overall-progress-bar"
+              style="width: 0%"
+            >
+              0%
+            </div>
+          </div>
+        </section>
+
+        <section class="charts-grid">
+          <div class="chart-card">
+            <h3>สัดส่วนสถานะงาน (Task Status)</h3>
+            <div class="chart-wrapper"><canvas id="statusChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>ระดับความสำคัญ (Priority Distribution)</h3>
+            <div class="chart-wrapper">
+              <canvas id="priorityChart"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- MODAL FORM (CREATE / UPDATE) -->
+    <div class="modal" id="taskModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">เพิ่มงานใหม่</h3>
+          <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <form id="taskForm" onsubmit="handleFormSubmit(event)">
+          <input type="hidden" id="taskId" />
+          <div class="form-group">
+            <label>ชื่อหัวข้องาน *</label>
+            <input
+              type="text"
+              id="taskTitle"
+              class="form-control"
+              placeholder="เช่น ออกแบบหน้าเว็บ..."
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>รายละเอียด</label>
+            <textarea
+              id="taskDesc"
+              class="form-control"
+              rows="3"
+              placeholder="ระบุรายละเอียดเพิ่มเติม..."
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>สถานะ</label>
+              <select id="taskStatus" class="form-control">
+                <option value="todo">To Do</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ความสำคัญ</label>
+              <select id="taskPriority" class="form-control">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>กำหนดส่ง</label>
+            <input type="date" id="taskDueDate" class="form-control" />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeModal()">
+              ยกเลิก
+            </button>
+            <button type="submit" class="btn-save">บันทึกข้อมูล</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- เชื่อมต่อไฟล์ JavaScript External -->
+    <script src="script.js"></script>
+  </body>
+</html>
