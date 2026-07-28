@@ -13,7 +13,11 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("API is working!");
 });
-
+app.use(
+  cors({
+    origin: "https://project-every-day.vercel.app/", // หรือใส่ "*" ช่วงทดสอบ
+  }),
+);
 app.use("/api/tasks", require("./routes/taskRoutes"));
 
 const PORT = process.env.PORT || 3000;
