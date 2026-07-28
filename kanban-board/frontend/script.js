@@ -1,7 +1,6 @@
 const API_BASE = "https://kanban-board-nj04.onrender.com/api/tasks";
-// ดึง Root Origin สำหรับเชื่อมต่อ WebSocket (เช่น https://kanban-board-nj04.onrender.com)
 const SOCKET_URL = "https://kanban-board-nj04.onrender.com";
-
+const socket = io(SOCKET_URL);
 let tasks = [];
 
 let currentPage = 1;
@@ -12,7 +11,6 @@ let priorityChartInstance = null;
 
 // ================= SOCKET.IO INITIALIZATION =================
 // 1. สร้างการเชื่อมต่อ Socket.io
-const socket = io(SOCKET_URL);
 
 socket.on("connect", () => {
   console.log("⚡ Real-time Socket Connected:", socket.id);
