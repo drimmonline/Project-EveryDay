@@ -7,6 +7,7 @@ const {
   updateTask,
   updateTaskStatus,
   deleteTask,
+  archiveDoneTasks,
 } = require("../controllers/taskController");
 
 // Route: /api/tasks
@@ -21,4 +22,5 @@ router.route("/:id").put(updateTask).delete(deleteTask);
 // Route: /api/tasks/:id/status
 router.patch("/:id/status", updateTaskStatus);
 
+router.patch("/archive-done", archiveDoneTasks);
 module.exports = router;

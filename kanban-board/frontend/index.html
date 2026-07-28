@@ -42,6 +42,66 @@
         </div>
       </header>
 
+      <!-- Filter & Action Bar สำหรับ Kanban -->
+      <div
+        class="kanban-toolbar"
+        style="
+          display: flex;
+          gap: 10px;
+          margin-bottom: 15px;
+          align-items: center;
+          flex-wrap: wrap;
+        "
+      >
+        <input
+          type="text"
+          id="filterSearch"
+          placeholder="🔍 ค้นหางาน..."
+          oninput="applyFilters()"
+          style="
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            flex: 1;
+            min-width: 150px;
+          "
+        />
+
+        <select
+          id="filterAssignee"
+          onchange="applyFilters()"
+          style="padding: 8px; border-radius: 6px; border: 1px solid #ccc"
+        >
+          <option value="">👤 ผู้รับผิดชอบทั้งหมด</option>
+        </select>
+
+        <select
+          id="filterPriority"
+          onchange="applyFilters()"
+          style="padding: 8px; border-radius: 6px; border: 1px solid #ccc"
+        >
+          <option value="">⚡ ความสำคัญทั้งหมด</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+
+        <button
+          onclick="archiveDoneTasks()"
+          class="btn-archive"
+          style="
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+          "
+        >
+          📦 เคลียร์ช่อง Done (Archive)
+        </button>
+      </div>
+
       <!-- VIEW 1: KANBAN BOARD -->
       <main id="kanban-view" class="page-view active">
         <div class="board">
@@ -116,8 +176,11 @@
                   <th>ID</th>
                   <th>ชื่อหัวข้องาน</th>
                   <th>รายละเอียด</th>
+                  <th>ผู้รับผิดชอบ</th>
                   <th>สถานะ</th>
                   <th>ความสำคัญ</th>
+                  <th>เวลาที่สร้าง</th>
+                  <!-- 👈 เพิ่มหัวข้อนี้ -->
                   <th>กำหนดส่ง</th>
                   <th>การจัดการ</th>
                 </tr>
@@ -196,6 +259,7 @@
         </div>
         <form id="taskForm" onsubmit="handleFormSubmit(event)">
           <input type="hidden" id="taskId" />
+
           <div class="form-group">
             <label>ชื่อหัวข้องาน *</label>
             <input
@@ -206,6 +270,7 @@
               required
             />
           </div>
+
           <div class="form-group">
             <label>รายละเอียด</label>
             <textarea
@@ -215,6 +280,17 @@
               placeholder="ระบุรายละเอียดเพิ่มเติม..."
             ></textarea>
           </div>
+
+          <div class="form-group">
+            <label>ผู้รับผิดชอบ (Assignee)</label>
+            <input
+              type="text"
+              id="taskAssignee"
+              class="form-control"
+              placeholder="เช่น ช่างมอส, ช่างต่าย"
+            />
+          </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>สถานะ</label>
@@ -224,6 +300,7 @@
                 <option value="done">Done</option>
               </select>
             </div>
+
             <div class="form-group">
               <label>ความสำคัญ</label>
               <select id="taskPriority" class="form-control">
@@ -233,10 +310,12 @@
               </select>
             </div>
           </div>
+
           <div class="form-group">
             <label>กำหนดส่ง</label>
             <input type="date" id="taskDueDate" class="form-control" />
           </div>
+
           <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="closeModal()">
               ยกเลิก

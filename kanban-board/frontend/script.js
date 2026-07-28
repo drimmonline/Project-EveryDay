@@ -10,43 +10,32 @@ let statusChartInstance = null;
 let priorityChartInstance = null;
 
 // ================= SOCKET.IO INITIALIZATION =================
-// 1. สร้างการเชื่อมต่อ Socket.io
-
 socket.on("connect", () => {
   console.log("⚡ Real-time Socket Connected:", socket.id);
 });
 
-// 2. ดักฟัง Event เมื่อมีคนสร้าง Task ใหม่
+// ดักฟัง Event เมื่อมีการ Archive งาน
+socket.on("task:archived", () => {
+  console.log("📢 Event: Tasks Archived");
+  fetchAllTasks().then(() => refreshUI());
+});
+
+// ดักฟัง Event เมื่อมีคนสร้าง Task ใหม่
 socket.on("task:created", (t) => {
   console.log("📢 Event: Task Created", t);
-  const newTask = {
-    id: t._id,
-    title: t.title,
-    desc: t.description,
-    status: t.status,
-    priority: t.priority,
-    dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
-  };
+  const newTask = mapTaskData(t);
 
-  // ตรวจสอบว่ามี Task นี้ใน Array หรือยังเพื่อป้องกัน Duplicate
   if (!tasks.some((item) => item.id === newTask.id)) {
     tasks.unshift(newTask);
     refreshUI();
   }
 });
 
-// 3. ดักฟัง Event เมื่อมีคนอัปเดต Task (รวมถึงการลากย้าย Drag & Drop)
+// ดักฟัง Event เมื่อมีคนอัปเดต Task
 socket.on("task:updated", (t) => {
   console.log("📢 Event: Task Updated", t);
   const index = tasks.findIndex((item) => item.id === t._id);
-  const updatedTask = {
-    id: t._id,
-    title: t.title,
-    desc: t.description,
-    status: t.status,
-    priority: t.priority,
-    dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
-  };
+  const updatedTask = mapTaskData(t);
 
   if (index !== -1) {
     tasks[index] = updatedTask;
@@ -56,15 +45,30 @@ socket.on("task:updated", (t) => {
   refreshUI();
 });
 
-// 4. ดักฟัง Event เมื่อมีคนลบ Task
+// ดักฟัง Event เมื่อมีคนลบ Task
 socket.on("task:deleted", (deletedId) => {
   console.log("📢 Event: Task Deleted", deletedId);
   tasks = tasks.filter((item) => item.id !== deletedId);
   refreshUI();
 });
 
-// ฟังก์ชันสำหรับรีเฟรชหน้าจอทั้งหมดเมื่อมีการเปลี่ยนแปลงข้อมูล Real-time
+// ฟังก์ชันแปลงข้อมูล Task จาก Backend
+function mapTaskData(t) {
+  return {
+    id: t._id,
+    title: t.title,
+    desc: t.description,
+    status: t.status,
+    priority: t.priority,
+    assignee: t.assignee || "Unassigned",
+    isArchived: t.isArchived || false,
+    dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
+    createdAt: t.createdAt ? new Date(t.createdAt) : new Date(),
+  };
+}
+
 function refreshUI() {
+  updateAssigneeDropdownOptions();
   renderKanban();
   if (document.getElementById("excel-view")?.classList.contains("active")) {
     renderExcelTable();
@@ -76,17 +80,14 @@ function refreshUI() {
 
 // ================= API HELPERS =================
 async function fetchAllTasks() {
-  const res = await fetch(`${API_BASE}?limit=500`);
-  const json = await res.json();
-  if (json.success) {
-    tasks = json.data.map((t) => ({
-      id: t._id,
-      title: t.title,
-      desc: t.description,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "",
-    }));
+  try {
+    const res = await fetch(`${API_BASE}?limit=500`);
+    const json = await res.json();
+    if (json.success) {
+      tasks = json.data.map(mapTaskData);
+    }
+  } catch (err) {
+    console.error("Fetch Tasks Error:", err);
   }
 }
 
@@ -99,6 +100,7 @@ async function createTaskAPI(data) {
       description: data.desc,
       status: data.status,
       priority: data.priority,
+      assignee: data.assignee,
       dueDate: data.dueDate || null,
     }),
   });
@@ -114,6 +116,7 @@ async function updateTaskAPI(id, data) {
       description: data.desc,
       status: data.status,
       priority: data.priority,
+      assignee: data.assignee,
       dueDate: data.dueDate || null,
     }),
   });
@@ -134,9 +137,29 @@ async function deleteTaskAPI(id) {
   return await res.json();
 }
 
+async function archiveDoneTasks() {
+  if (
+    confirm(
+      "ต้องการเคลียร์การ์ดที่เสร็จแล้ว (Done) ออกจากหน้า Kanban หรือไม่?\n(ข้อมูลจะยังคงอยู่ใน Excel View และ Dashboard)",
+    )
+  ) {
+    try {
+      const res = await fetch(`${API_BASE}/archive-done`, { method: "PATCH" });
+      const json = await res.json();
+      if (json.success) {
+        await fetchAllTasks();
+        refreshUI();
+      }
+    } catch (err) {
+      console.error("Archive Error:", err);
+    }
+  }
+}
+
 // ================= INIT =================
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchAllTasks();
+  updateAssigneeDropdownOptions();
   renderKanban();
   initCharts();
   updateDashboard();
@@ -148,6 +171,17 @@ const statusLabels = {
   "in-progress": "In Progress",
   done: "Done",
 };
+
+function formatDateTime(dateObj) {
+  if (!dateObj || isNaN(dateObj)) return "-";
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(dateObj);
+}
 
 // ================= 1. TAB NAVIGATION =================
 function switchTab(tabId, element) {
@@ -165,14 +199,33 @@ function switchTab(tabId, element) {
   if (tabId === "dashboard-view") updateDashboard();
 }
 
-// ================= 2. KANBAN RENDERING & DRAG-DROP =================
+// ================= 2. KANBAN RENDERING & FILTERING =================
 function renderKanban() {
   const columns = ["todo", "in-progress", "done"];
+
+  const searchText =
+    document.getElementById("filterSearch")?.value.toLowerCase() || "";
+  const selectedAssignee =
+    document.getElementById("filterAssignee")?.value || "";
+  const selectedPriority =
+    document.getElementById("filterPriority")?.value || "";
+
+  // กรองเอาเฉพาะ Task ที่ยังไม่ Archive และตรงตามการ ค้นหา/Filter
+  const activeTasks = tasks.filter((t) => {
+    if (t.isArchived) return false;
+    const matchSearch =
+      t.title.toLowerCase().includes(searchText) ||
+      (t.desc && t.desc.toLowerCase().includes(searchText));
+    const matchAssignee = !selectedAssignee || t.assignee === selectedAssignee;
+    const matchPriority = !selectedPriority || t.priority === selectedPriority;
+    return matchSearch && matchAssignee && matchPriority;
+  });
+
   columns.forEach((col) => {
     const container = document.getElementById(`cards-${col}`);
     if (!container) return;
 
-    const colTasks = tasks.filter((t) => t.status === col);
+    const colTasks = activeTasks.filter((t) => t.status === col);
     const badge = document.getElementById(`badge-${col}`);
     if (badge) badge.innerText = colTasks.length;
 
@@ -188,15 +241,34 @@ function renderKanban() {
           </div>
         </div>
         ${task.desc ? `<div class="card-description">${escapeHtml(task.desc)}</div>` : ""}
-        <div class="card-footer">
+        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <span class="assignee-badge" style="font-size: 0.8em; background: #e5e7eb; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(task.assignee)}</span>
           <span class="priority ${task.priority}">${task.priority.toUpperCase()}</span>
-          <span class="due-date"><i class="fa-regular fa-calendar"></i> ${task.dueDate || "-"}</span>
         </div>
       </div>
     `,
       )
       .join("");
   });
+}
+
+function applyFilters() {
+  renderKanban();
+}
+
+function updateAssigneeDropdownOptions() {
+  const select = document.getElementById("filterAssignee");
+  if (!select) return;
+  const currentVal = select.value;
+
+  const assignees = [...new Set(tasks.map((t) => t.assignee))].filter(Boolean);
+  select.innerHTML =
+    `<option value="">👤 ผู้รับผิดชอบทั้งหมด</option>` +
+    assignees
+      .map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`)
+      .join("");
+
+  select.value = currentVal;
 }
 
 function allowDrop(ev) {
@@ -213,14 +285,11 @@ async function drop(ev, targetStatus) {
   const task = tasks.find((t) => t.id === id);
 
   if (task && task.status !== targetStatus) {
-    // Optimistic UI Update (ย้าย UI ทันทีไม่ต้องรอ Network)
     task.status = targetStatus;
     renderKanban();
 
-    // ยิง API (Backend จะปล่อย socket event `task:updated` กลับมาให้เครื่องอื่นๆ เอง)
     const result = await updateTaskStatusAPI(id, targetStatus);
     if (!result.success) {
-      // หากยิงไม่ผ่าน ค่อยสั่ง Fetch ดึงข้อมูลคืน
       await fetchAllTasks();
       refreshUI();
     }
@@ -237,10 +306,11 @@ function openModal(id = null) {
     document.getElementById("modalTitle").innerText = "แก้ไขงาน";
     document.getElementById("taskId").value = task.id;
     document.getElementById("taskTitle").value = task.title;
-    document.getElementById("taskDesc").value = task.desc;
+    document.getElementById("taskDesc").value = task.desc || "";
+    document.getElementById("taskAssignee").value = task.assignee || "";
     document.getElementById("taskStatus").value = task.status;
     document.getElementById("taskPriority").value = task.priority;
-    document.getElementById("taskDueDate").value = task.dueDate;
+    document.getElementById("taskDueDate").value = task.dueDate || "";
   } else {
     document.getElementById("modalTitle").innerText = "เพิ่มงานใหม่";
     form.reset();
@@ -258,6 +328,8 @@ async function handleFormSubmit(e) {
   const id = document.getElementById("taskId").value;
   const title = document.getElementById("taskTitle").value;
   const desc = document.getElementById("taskDesc").value;
+  const assignee =
+    document.getElementById("taskAssignee").value || "Unassigned";
   const status = document.getElementById("taskStatus").value;
   const priority = document.getElementById("taskPriority").value;
   const dueDate = document.getElementById("taskDueDate").value;
@@ -268,27 +340,19 @@ async function handleFormSubmit(e) {
     await updateTaskAPI(id, {
       title,
       desc,
+      assignee,
       status,
       priority,
       dueDate,
     });
   } else {
-    await createTaskAPI({
-      title,
-      desc,
-      status,
-      priority,
-      dueDate,
-    });
+    await createTaskAPI({ title, desc, assignee, status, priority, dueDate });
   }
-  // ไม่จำเป็นต้อง Render ซ้ำที่นี่ เพราะ Socket Event (`task:created` หรือ `task:updated`)
-  // จาก Backend จะส่งกลับมา trigger ให้ refreshUI() ทำงานอัตโนมัติครับ
 }
 
 async function deleteTask(id) {
   if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?")) {
     await deleteTaskAPI(id);
-    // Socket Event (`task:deleted`) จะเคลียร์ array และ refreshUI() ให้อัตโนมัติเช่นกันครับ
   }
 }
 
@@ -313,8 +377,10 @@ function renderExcelTable() {
       <td>#${task.id.slice(-4)}</td>
       <td><strong>${escapeHtml(task.title)}</strong></td>
       <td>${escapeHtml(task.desc || "-")}</td>
+      <td>👤 ${escapeHtml(task.assignee)}</td>
       <td><span class="status-badge status-${task.status}">${statusLabels[task.status] || task.status}</span></td>
       <td><span class="priority ${task.priority}">${task.priority.toUpperCase()}</span></td>
+      <td><small style="color: #64748b;">${formatDateTime(task.createdAt)}</small></td>
       <td>${task.dueDate || "-"}</td>
       <td>
         <button class="card-action-btn" onclick="openModal('${task.id}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
@@ -369,10 +435,11 @@ function exportToCSV() {
   if (tasks.length === 0) return alert("ไม่มีข้อมูลสำหรับส่งออก");
 
   let csvContent = "\uFEFF";
-  csvContent += "ID,Title,Description,Status,Priority,Due Date\n";
+  csvContent +=
+    "ID,Title,Description,Assignee,Status,Priority,Created At,Due Date\n";
 
   tasks.forEach((t) => {
-    csvContent += `"${t.id}","${t.title.replace(/"/g, '""')}","${(t.desc || "").replace(/"/g, '""')}","${t.status}","${t.priority}","${t.dueDate}"\n`;
+    csvContent += `"${t.id}","${t.title.replace(/"/g, '""')}","${(t.desc || "").replace(/"/g, '""')}","${t.assignee}","${t.status}","${t.priority}","${formatDateTime(t.createdAt)}","${t.dueDate}"\n`;
   });
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });

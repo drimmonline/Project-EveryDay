@@ -159,3 +159,22 @@ exports.deleteTask = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.archiveDoneTasks = async (req, res) => {
+  try {
+    // อัปเดต task ที่เป็นสถานะ 'done' และยังไม่ได้ archive ให้เป็น isArchived: true
+    await Task.updateMany(
+      { status: "done", isArchived: { $ne: true } },
+      { $set: { isArchived: true } },
+    );
+
+    const io = req.app.get("io");
+    if (io) io.emit("task:archived"); // 📢 ส่งสัญญาณให้ทุก Client อัปเดตหน้าจอ
+
+    res
+      .status(200)
+      .json({ success: true, message: "Archive งานที่เสร็จเรียบร้อยแล้ว" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
