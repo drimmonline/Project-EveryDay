@@ -3,27 +3,25 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
-// โหลด Environment Variables
 dotenv.config();
-
-// เชื่อมต่อ MongoDB
-connectDB();
 
 const app = express();
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Routes
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("API is working!");
 });
+
 app.use("/api/tasks", require("./routes/taskRoutes"));
 
-// Start Server
 const PORT = process.env.PORT || 10000;
 
+// ให้ Server เริ่มทำงานและเปิด Port ก่อนเลย
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Example app listening on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+
+  // จากนั้นค่อยสั่งเชื่อมต่อ Database
+  connectDB();
 });
