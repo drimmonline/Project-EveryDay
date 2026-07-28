@@ -16,14 +16,14 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 app.use("/api/tasks", require("./routes/taskRoutes"));
 
 // Start Server
+const PORT = process.env.PORT || 10000;
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Example app listening on port ${port}`);
-});
-app.get("/", (req, res) => {
-  res.send("Hello World!");
+  console.log(`Example app listening on port ${PORT}`);
 });
