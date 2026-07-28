@@ -88,6 +88,7 @@ function startQuiz() {
 }
 
 function showQuestion() {
+  //reset state
   answersDisabled = false;
   const currentQuestion = quizQuestions[currentQuestionIndex];
 
@@ -95,6 +96,7 @@ function showQuestion() {
 
   const progressPercent = (currentQuestionIndex / quizQuestions.length) * 100;
   progressBar.style.width = progressPercent + "%";
+
   questionText.textContent = currentQuestion.question;
 
   answersContainer.innerHTML = ""; // ล้างตัวเลือกข้อเก่าออก
