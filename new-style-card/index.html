@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Luxury E-Commerce Parallax & Scroll Showcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+      <div class="brand-logo">MAISON</div>
+      <ul class="nav-links">
+        <li><a href="#collections">Collections</a></li>
+        <li><a href="#craftsmanship">Craftsmanship</a></li>
+        <li><a href="#about">Maison</a></li>
+      </ul>
+    </nav>
+
+    <!-- HERO SECTION WITH PARALLAX -->
+    <section class="hero-section">
+      <div class="parallax-bg" id="hero-bg"></div>
+      <div class="parallax-bg-pattern" id="hero-pattern"></div>
+      <div class="hero-content" id="hero-text">
+        <span class="hero-subtitle">AUTUMN - WINTER 2026</span>
+        <h1 class="hero-title">Elegance Redefined</h1>
+        <p class="hero-desc">
+          Discover the harmonious blend of timeless French craftsmanship and
+          avant-garde aesthetic innovation.
+        </p>
+        <a href="#collections" class="cta-btn">Explore Collection</a>
+      </div>
+    </section>
+
+    <!-- SECTION HEADER -->
+    <div class="section-header" id="collections">
+      <span class="section-subtitle">CURATED SELECTION</span>
+      <h2 class="section-title">Iconic Creations</h2>
+    </div>
+
+    <!-- PRODUCTS SECTION WITH SCROLL TRIGGER CARDS -->
+    <section class="products-section">
+      <div class="product-grid">
+        <!-- CARD 1 -->
+        <div class="lv-card scroll-reveal">
+          <div class="card-media">
+            <img
+              src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=80"
+              alt="Handbag Front"
+              class="media-main"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=800&q=80"
+              alt="Handbag Detail"
+              class="media-hover"
+            />
+          </div>
+          <div class="card-info">
+            <span class="card-tag">Leather Goods</span>
+            <h3 class="card-title">Le Monogramme Tote</h3>
+            <p class="card-price">฿125,000</p>
+            <button class="card-btn">Discover</button>
+          </div>
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="lv-card scroll-reveal">
+          <div class="card-media">
+            <img
+              src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80"
+              alt="Leather Bag Front"
+              class="media-main"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80"
+              alt="Leather Bag Texture"
+              class="media-hover"
+            />
+          </div>
+          <div class="card-info">
+            <span class="card-tag">Iconic Series</span>
+            <h3 class="card-title">Alma Royale Edition</h3>
+            <p class="card-price">฿148,000</p>
+            <button class="card-btn">Discover</button>
+          </div>
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="lv-card scroll-reveal">
+          <div class="card-media">
+            <img
+              src="https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&w=800&q=80"
+              alt="Perfume Front"
+              class="media-main"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80"
+              alt="Perfume Context"
+              class="media-hover"
+            />
+          </div>
+          <div class="card-info">
+            <span class="card-tag">Fragrance</span>
+            <h3 class="card-title">Ombre Impériale 100ml</h3>
+            <p class="card-price">฿18,500</p>
+            <button class="card-btn">Discover</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURED SHOWCASE (PINNED & ANIMATED ON SCROLL) -->
+    <section class="featured-showcase" id="craftsmanship">
+      <div class="showcase-container">
+        <div class="showcase-image-wrapper" id="showcase-img">
+          <img
+            src="https://images.unsplash.com/photo-1537832816519-689ad163238b?auto=format&fit=crop&w=1000&q=80"
+            alt="Craftsmanship Detail"
+          />
+        </div>
+        <div class="showcase-details" id="showcase-text">
+          <span class="section-subtitle">SAVOIR-FAIRE</span>
+          <h2>Unrivaled Craftsmanship</h2>
+          <p>
+            Every stitch and edge line tells a story of heritage. Handcrafted by
+            master artisans in our historic workshops, blending traditions with
+            modern precision.
+          </p>
+          <a href="#" class="cta-btn">Explore The Atelier</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>&copy; 2026 MAISON LUXURY DEMO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <!-- GSAP ANIMATION SCRIPT -->
+    <script src="script.js"></script>
+  </body>
+</html>

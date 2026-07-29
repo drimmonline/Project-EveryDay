@@ -1,0 +1,374 @@
+/* RESET & BASE STYLES */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+  background-color: #0b0b0b;
+  color: #f4f4f4;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+.brand-logo {
+  font-family: "Cinzel", serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* NAVBAR */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 24px 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+  backdrop-filter: blur(8px);
+}
+
+.brand-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 4px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: #e5c158;
+}
+
+/* HERO SECTION (PARALLAX EFFECT) */
+.hero-section {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.parallax-bg {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  background: radial-gradient(circle at center, #2a241e 0%, #0b0b0b 70%);
+  z-index: 1;
+}
+
+.parallax-bg-pattern {
+  position: absolute;
+  top: -10%;
+  left: 0;
+  width: 100%;
+  height: 120%;
+  background-image: radial-gradient(
+    rgba(212, 175, 55, 0.12) 1px,
+    transparent 0
+  );
+  background-size: 40px 40px;
+  z-index: 2;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  max-width: 800px;
+  padding: 0 20px;
+}
+
+.hero-subtitle {
+  font-size: 0.9rem;
+  letter-spacing: 5px;
+  color: #d4af37;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  line-height: 1.2;
+  margin-bottom: 25px;
+  font-weight: 400;
+  background: linear-gradient(135deg, #ffffff 0%, #a6a6a6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-desc {
+  font-size: 0.95rem;
+  color: #a0a0a0;
+  line-height: 1.8;
+  max-width: 600px;
+  margin: 0 auto 35px auto;
+  font-weight: 300;
+}
+
+.cta-btn {
+  display: inline-block;
+  padding: 14px 36px;
+  border: 1px solid #d4af37;
+  color: #d4af37;
+  text-decoration: none;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.4s ease;
+}
+
+.cta-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: #d4af37;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: -1;
+}
+
+.cta-btn:hover {
+  color: #0b0b0b;
+}
+
+.cta-btn:hover::before {
+  transform: translateX(100%);
+}
+
+/* SECTION TITLE */
+.section-header {
+  text-align: center;
+  padding: 100px 20px 60px 20px;
+}
+
+.section-subtitle {
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  color: #d4af37;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 2.2rem;
+  font-weight: 400;
+  color: #fff;
+}
+
+/* PRODUCT CARDS SECTION */
+.products-section {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 40px 120px 40px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 40px;
+}
+
+/* LOUIS VUITTON STYLE CARD */
+.lv-card {
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+
+.lv-card:hover {
+  border-color: #d4af37;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background-color: #1a1a1a;
+}
+
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition:
+    transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 0.6s ease;
+}
+
+.media-hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+.lv-card:hover .media-main {
+  opacity: 0;
+  transform: scale(1.08);
+}
+
+.lv-card:hover .media-hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.card-info {
+  padding: 24px 20px;
+  text-align: center;
+  position: relative;
+}
+
+.card-tag {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: #d4af37;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 400;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.card-price {
+  font-size: 0.95rem;
+  color: #888;
+  font-weight: 300;
+  transition: color 0.3s ease;
+}
+
+.lv-card:hover .card-price {
+  color: #fff;
+}
+
+.card-btn {
+  margin-top: 16px;
+  display: inline-block;
+  padding: 10px 24px;
+  background: transparent;
+  border: 1px solid #d4af37;
+  color: #d4af37;
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(15px);
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.lv-card:hover .card-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.card-btn:hover {
+  background: #d4af37;
+  color: #0b0b0b;
+}
+
+/* SCROLL FEATURED SHOWCASE (PINNED SECTION) */
+.featured-showcase {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070707;
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid #1f1f1f;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.showcase-container {
+  display: flex;
+  width: 80%;
+  max-width: 1100px;
+  align-items: center;
+  gap: 60px;
+}
+
+.showcase-image-wrapper {
+  flex: 1;
+  height: 500px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+}
+
+.showcase-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.showcase-details {
+  flex: 1;
+}
+
+.showcase-details h2 {
+  font-size: 2.8rem;
+  line-height: 1.2;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.showcase-details p {
+  font-size: 0.95rem;
+  color: #a0a0a0;
+  line-height: 1.8;
+  margin-bottom: 30px;
+  font-weight: 300;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 60px 20px;
+  border-top: 1px solid #1a1a1a;
+  color: #555;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
